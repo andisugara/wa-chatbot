@@ -31,12 +31,39 @@ export const logoutWA = async () => {
   setTimeout(initWhatsApp, 1000); // Restart
 };
 
+class MessageQueue {
+  private queue: (() => Promise<void>)[] = [];
+  private isProcessing = false;
+
+  add(task: () => Promise<void>) {
+    this.queue.push(task);
+    this.processNext();
+  }
+
+  private async processNext() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    this.isProcessing = true;
+    const task = this.queue.shift();
+    if (task) {
+      try {
+        await task();
+      } catch (error) {
+        console.error('[WhatsApp] Queue execution error:', error);
+      }
+    }
+    this.isProcessing = false;
+    this.processNext();
+  }
+}
+
+const messageQueue = new MessageQueue();
+
 export const initWhatsApp = async () => {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version, isLatest } = await fetchLatestBaileysVersion();
-  
+
   console.log(`[WhatsApp] Using WA v${version.join('.')}, isLatest: ${isLatest}`);
-  
+
   connectionStatus = 'CONNECTING';
 
   sock = makeWASocket({
@@ -92,16 +119,19 @@ export const initWhatsApp = async () => {
 
     console.log(`[WhatsApp] Received message from ${jid}: ${messageContent}`);
 
-    try {
-      // Send a typing indicator
-      await sock!.sendPresenceUpdate('composing', jid);
-      
-      const reply = await processChatMessage(messageContent);
-      
-      await sock!.sendMessage(jid, { text: reply });
-    } catch (error) {
-      console.error('[WhatsApp] Error processing message:', error);
-      await sock!.sendMessage(jid, { text: 'Sorry, I encountered an error while processing your request.' });
-    }
+    // Add to processing queue to prevent concurrent API requests dropping
+    messageQueue.add(async () => {
+      try {
+        // Send a typing indicator
+        await sock!.sendPresenceUpdate('composing', jid);
+
+        const reply = await processChatMessage(messageContent);
+
+        await sock!.sendMessage(jid, { text: reply });
+      } catch (error) {
+        console.error('[WhatsApp] Error processing message:', error);
+        await sock!.sendMessage(jid, { text: 'Maaf, terjadi kesalahan saat memproses permintaan Anda' });
+      }
+    });
   });
 };
