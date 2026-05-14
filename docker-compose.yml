@@ -1,0 +1,54 @@
+services:
+  wa-chatbot-db:
+    image: ankane/pgvector:latest
+    container_name: wa-chatbot-db
+    environment:
+      POSTGRES_USER: chatbot_user
+      POSTGRES_PASSWORD: chatbot_password
+      POSTGRES_DB: chatbot_db
+    ports:
+      - "5433:5432"
+    networks:
+      - msa-networks
+    volumes:
+      - ./postgres-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  wa-chatbot-fe:
+    build:
+      context: ./wa-chatbot-fe
+      dockerfile: Dockerfile
+    image: wa-chatbot-fe:latest
+    container_name: wa-chatbot-fe
+    networks:
+      - msa-networks
+    ports:
+      - "8098:80"
+    restart: unless-stopped
+    depends_on:
+      - wa-chatbot-be
+
+  wa-chatbot-be:
+    build:
+      context: ./wa-chatbot-be
+      dockerfile: Dockerfile
+    image: wa-chatbot-be:latest
+    container_name: wa-chatbot-be
+    environment:
+      - DATABASE_URL=postgresql://chatbot_user:chatbot_password@wa-chatbot-db:5432/chatbot_db?schema=public
+    networks:
+      - msa-networks
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./wa-chatbot-be/wa_auth:/app/wa_auth
+    restart: unless-stopped
+    depends_on:
+      - wa-chatbot-db
+
+
+networks:
+  msa-networks:
+    driver: bridge
+    name: msa-networks
+    external: true
