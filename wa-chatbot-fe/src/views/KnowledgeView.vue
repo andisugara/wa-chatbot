@@ -11,7 +11,7 @@ const fetchKnowledge = async () => {
   try {
     const token = localStorage.getItem('token');
     if (!token) return;
-    const res = await axios.get('http://localhost:3000/api/knowledge', {
+    const res = await axios.get('/api/knowledge', {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.data.content) {
@@ -36,7 +36,7 @@ const submitKnowledge = async () => {
   status.value = 'loading';
   try {
     const token = localStorage.getItem('token');
-    await axios.post('http://localhost:3000/api/knowledge', {
+    await axios.post('/api/knowledge', {
       content: content.value
     }, {
       headers: {

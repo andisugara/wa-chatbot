@@ -17,7 +17,7 @@ const fetchStatus = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const res = await axios.get('http://localhost:3000/api/whatsapp/status', {
+    const res = await axios.get('/api/whatsapp/status', {
       headers: { Authorization: `Bearer ${token}` }
     });
     
@@ -44,7 +44,7 @@ const logoutWA = async () => {
   isLoading.value = true;
   try {
     const token = localStorage.getItem('token');
-    await axios.post('http://localhost:3000/api/whatsapp/logout', {}, {
+    await axios.post('/api/whatsapp/logout', {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
     await fetchStatus();

@@ -39,7 +39,7 @@ const sendMessage = async () => {
 
   try {
     const token = localStorage.getItem('token');
-    const res = await axios.post('http://localhost:3000/api/playground', {
+    const res = await axios.post('/api/playground', {
       message: userMsg
     }, {
       headers: { Authorization: `Bearer ${token}` }
