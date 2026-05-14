@@ -14,8 +14,6 @@ WORKDIR /app
 COPY package*.json ./
 # Install only production dependencies
 RUN npm install --omit=dev
-# Install pm2 globally
-RUN npm install -g pm2
 # Copy compiled output and necessary files from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
@@ -23,5 +21,5 @@ COPY --from=builder /app/.env ./.env
 COPY --from=builder /app/prisma.config.ts ./
 
 EXPOSE 3000
-# Run the built app using pm2-runtime
-CMD ["pm2-runtime", "dist/index.js", "--name", "wa-chatbot-be"]
+# Run the built app using node directly (Docker will handle restarts)
+CMD ["node", "dist/index.js"]
