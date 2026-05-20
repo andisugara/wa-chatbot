@@ -9,7 +9,7 @@ services:
     ports:
       - "5433:5432"
     networks:
-      - msa-networks
+      - my-networks
     volumes:
       - ./postgres-db:/var/lib/postgresql/data
     restart: unless-stopped
@@ -21,9 +21,9 @@ services:
     image: wa-chatbot-fe:latest
     container_name: wa-chatbot-fe
     networks:
-      - msa-networks
+      - my-networks
     ports:
-      - "8098:80"
+      - "8009:80"
     restart: unless-stopped
     depends_on:
       - wa-chatbot-be
@@ -37,18 +37,17 @@ services:
     environment:
       - DATABASE_URL=postgresql://chatbot_user:chatbot_password@wa-chatbot-db:5432/chatbot_db?schema=public
     networks:
-      - msa-networks
+      - my-networks
     ports:
-      - "3000:3000"
+      - "8010:3000"
     volumes:
       - ./wa-chatbot-be/wa_auth:/app/wa_auth
     restart: unless-stopped
     depends_on:
       - wa-chatbot-db
 
-
 networks:
-  msa-networks:
+  my-networks:
     driver: bridge
-    name: msa-networks
+    name: my-networks
     external: true

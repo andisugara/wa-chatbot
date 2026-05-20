@@ -28,3 +28,11 @@ model Knowledge {
   createdAt DateTime               @default(now())
   updatedAt DateTime               @updatedAt
 }
+
+model Message {
+  id          String   @id @default(uuid())
+  phoneNumber String
+  role        String
+  content     String
+  createdAt   DateTime @default(now())
+}

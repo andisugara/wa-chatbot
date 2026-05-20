@@ -1,5 +1,6 @@
 {
   "watch": ["src", ".env"],
   "ext": "ts,json",
-  "ignore": ["wa_auth/*", "node_modules/*"]
+  "ignore": ["wa_auth/*", "node_modules/*"],
+  "exec": "ts-node src/index.ts"
 }

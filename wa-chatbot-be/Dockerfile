@@ -22,6 +22,6 @@ COPY --from=builder /app/prisma.config.ts ./
 # Copy generated Prisma Client
 COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 
-EXPOSE 3000
+EXPOSE 8010
 # Run the built app using node directly (Docker will handle restarts)
 CMD ["node", "dist/index.js"]
