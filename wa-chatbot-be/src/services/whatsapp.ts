@@ -5,6 +5,16 @@ import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
 import { processChatMessage } from './chatbot';
+import { prisma } from '../lib/prisma';
+
+// Helper to resolve the correct images directory
+const getImagesDir = () => {
+  const dockerPath = '/app/images';
+  if (fs.existsSync(dockerPath)) {
+    return dockerPath;
+  }
+  return path.resolve(__dirname, '../../../images');
+};
 
 export type WAConnectionStatus = 'CONNECTING' | 'QR_READY' | 'CONNECTED' | 'DISCONNECTED';
 
@@ -112,7 +122,7 @@ export const initWhatsApp = async () => {
 
     const jid = msg.key.remoteJid;
     if (!jid) return;
-
+    console.log("msg ", msg)
     // Only reply to standard text messages for now
     const messageContent = msg.message.conversation || msg.message.extendedTextMessage?.text;
     if (!messageContent) return;
@@ -122,11 +132,96 @@ export const initWhatsApp = async () => {
     // Add to processing queue to prevent concurrent API requests dropping
     messageQueue.add(async () => {
       try {
+        const phoneJid = (msg.key as any).remoteJidAlt || jid;
+        const phoneNumber = phoneJid.split('@')[0];
+        const contactName = msg.pushName || phoneNumber;
+
+        // 1. Automatically save/update the contact in DB
+        const contact = await prisma.contact.upsert({
+          where: { phoneNumber },
+          update: {}, // Keep existing customized contact name and AI status
+          create: {
+            phoneNumber,
+            name: contactName,
+            aiEnabled: true,
+          },
+        });
+
+        // 2. If AI status is OFF (disabled), only record the incoming message and skip AI generation
+        if (!contact.aiEnabled) {
+          console.log(`[WhatsApp] AI is disabled for ${phoneNumber}. Skipping bot response for takeover.`);
+          await (prisma as any).message.create({
+            data: {
+              phoneNumber,
+              role: 'user',
+              content: messageContent,
+            },
+          });
+          return;
+        }
+
         // Send a typing indicator
         await sock!.sendPresenceUpdate('composing', jid);
 
-        const reply = await processChatMessage(messageContent);
+        // 3. Process chatbot message via AI (with phone context history)
+        const reply = await processChatMessage(messageContent, phoneNumber);
 
+        // 4. Check if AI requested sending specific images (supports multiple images)
+        if (reply.includes('fetchImage')) {
+          const imagesDir = getImagesDir();
+          const filesToSend: string[] = [];
+
+          // Find all fetchImage:<urls_or_filenames> matches
+          const fetchImageRegex = /fetchImage:([^\s]+)/gi;
+          let match;
+
+          while ((match = fetchImageRegex.exec(reply)) !== null) {
+            const list = match[1];
+            // Split comma-separated URLs or filenames
+            const parts = list.split(',');
+            for (const part of parts) {
+              const filename = path.basename(part.trim());
+              if (filename) {
+                const filePath = path.join(imagesDir, filename);
+                if (fs.existsSync(filePath)) {
+                  filesToSend.push(filePath);
+                } else {
+                  console.warn(`[WhatsApp] Image ${filename} does not exist in directory.`);
+                }
+              }
+            }
+          }
+
+          if (filesToSend.length > 0) {
+            // Extract caption by stripping all fetchImage instructions from response
+            const caption = reply.replace(/fetchImage:[^\s]+/gi, '').trim();
+
+            console.log(`[WhatsApp] Sending ${filesToSend.length} media images. Caption: "${caption}"`);
+
+            for (let i = 0; i < filesToSend.length; i++) {
+              const filePath = filesToSend[i];
+              // Attach the caption to the first image, leave others without caption
+              const imageCaption = i === 0 ? (caption || undefined) : undefined;
+
+              await sock!.sendMessage(jid, {
+                image: fs.readFileSync(filePath),
+                caption: imageCaption,
+              });
+            }
+
+            // Log the assistant response to database logs
+            await (prisma as any).message.create({
+              data: {
+                phoneNumber,
+                role: 'assistant',
+                content: reply,
+              },
+            });
+            return;
+          }
+        }
+
+        // Send standard text response
         await sock!.sendMessage(jid, { text: reply });
       } catch (error) {
         console.error('[WhatsApp] Error processing message:', error);

@@ -5,6 +5,8 @@ import MainLayout from '../components/MainLayout.vue';
 import KnowledgeView from '../views/KnowledgeView.vue';
 import PlaygroundView from '../views/PlaygroundView.vue';
 import WhatsAppView from '../views/WhatsAppView.vue';
+import ContactsView from '../views/ContactsView.vue';
+import ImagesView from '../views/ImagesView.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -35,10 +37,21 @@ const routes: Array<RouteRecordRaw> = [
         path: 'whatsapp',
         name: 'WhatsApp',
         component: WhatsAppView
+      },
+      {
+        path: 'contacts',
+        name: 'Contacts',
+        component: ContactsView
+      },
+      {
+        path: 'images',
+        name: 'Images',
+        component: ImagesView
       }
     ]
   }
 ];
+
 
 const router = createRouter({
   history: createWebHistory(),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router';
-import { Database, MessageSquare, LogOut, Bot, Smartphone } from 'lucide-vue-next';
+import { Database, MessageSquare, LogOut, Bot, Smartphone, Users, Image } from 'lucide-vue-next';
 
 const router = useRouter();
 const route = useRoute();
@@ -49,7 +49,26 @@ const handleLogout = () => {
           <Smartphone :size="20" />
           <span>WhatsApp Connection</span>
         </router-link>
+
+        <router-link 
+          to="/contacts" 
+          class="nav-item" 
+          :class="{ active: route.name === 'Contacts' }"
+        >
+          <Users :size="20" />
+          <span>Contacts</span>
+        </router-link>
+
+        <router-link 
+          to="/images" 
+          class="nav-item" 
+          :class="{ active: route.name === 'Images' }"
+        >
+          <Image :size="20" />
+          <span>Images</span>
+        </router-link>
       </nav>
+
 
       <div class="sidebar-footer">
         <button @click="handleLogout" class="logout-btn">
