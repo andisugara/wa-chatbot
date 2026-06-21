@@ -1,35 +1,36 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
-import { LogIn, User, Lock } from 'lucide-vue-next';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import axios from "axios";
+import { LogIn, User, Lock } from "lucide-vue-next";
 
 const router = useRouter();
-const email = ref('');
-const password = ref('');
-const errorMsg = ref('');
+const email = ref("");
+const password = ref("");
+const errorMsg = ref("");
 const isLoading = ref(false);
 
 const handleLogin = async () => {
-  errorMsg.value = '';
+  errorMsg.value = "";
   isLoading.value = true;
   try {
-    const res = await axios.post('/api/auth/login', {
+    const res = await axios.post("/api/auth/login", {
       email: email.value,
       password: password.value,
     });
-    
+
     if (res.data.token) {
-      localStorage.setItem('token', res.data.token);
-      router.push('/knowledge-base');
+      localStorage.setItem("token", res.data.token);
+      router.push("/knowledge-base");
     }
   } catch (error: any) {
     if (error.response?.data?.error) {
-      errorMsg.value = typeof error.response.data.error === 'string' 
-        ? error.response.data.error 
-        : 'Invalid email or password format';
+      errorMsg.value =
+        typeof error.response.data.error === "string"
+          ? error.response.data.error
+          : "Invalid email or password format";
     } else {
-      errorMsg.value = 'Failed to connect to the server';
+      errorMsg.value = "Failed to connect to the server";
     }
   } finally {
     isLoading.value = false;
@@ -53,13 +54,13 @@ const handleLogin = async () => {
           <label for="email">Email Address</label>
           <div class="input-wrapper">
             <User :size="18" class="input-icon" />
-            <input 
-              id="email" 
-              v-model="email" 
-              type="email" 
-              class="input-field with-icon" 
+            <input
+              id="email"
+              v-model="email"
+              type="email"
+              class="input-field with-icon"
               placeholder="admin@test.com"
-              required 
+              required
             />
           </div>
         </div>
@@ -68,13 +69,13 @@ const handleLogin = async () => {
           <label for="password">Password</label>
           <div class="input-wrapper">
             <Lock :size="18" class="input-icon" />
-            <input 
-              id="password" 
-              v-model="password" 
-              type="password" 
-              class="input-field with-icon" 
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              class="input-field with-icon"
               placeholder="••••••••"
-              required 
+              required
             />
           </div>
         </div>
@@ -83,7 +84,11 @@ const handleLogin = async () => {
           {{ errorMsg }}
         </div>
 
-        <button type="submit" class="btn-primary login-btn" :disabled="isLoading">
+        <button
+          type="submit"
+          class="btn-primary login-btn"
+          :disabled="isLoading"
+        >
           <span v-if="isLoading">Authenticating...</span>
           <span v-else>Sign In</span>
         </button>

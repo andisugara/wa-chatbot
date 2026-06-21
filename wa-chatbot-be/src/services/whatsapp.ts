@@ -24,6 +24,31 @@ let sock: ReturnType<typeof makeWASocket> | null = null;
 
 const AUTH_DIR = path.resolve(__dirname, '../../wa_auth');
 
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+async function safeRemoveDir(dir: string, retries = 5, delay = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await fs.promises.rm(dir, { recursive: true, force: true });
+      return;
+    } catch (err: any) {
+      const code = err && err.code;
+      if (code === 'EBUSY' || code === 'EPERM' || code === 'ENOTEMPTY') {
+        console.warn(`[WhatsApp] remove dir attempt ${i + 1} failed (${code}). Retrying in ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+      console.error('[WhatsApp] Failed to remove auth dir:', err);
+      return;
+    }
+  }
+  try {
+    await fs.promises.rm(dir, { recursive: true, force: true });
+  } catch (err) {
+    console.error('[WhatsApp] Final remove attempt failed:', err);
+  }
+}
+
 export const getWAStatus = () => {
   return { status: connectionStatus, qrCode: currentQrCode };
 };
@@ -34,7 +59,7 @@ export const logoutWA = async () => {
     sock = null;
   }
   if (fs.existsSync(AUTH_DIR)) {
-    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    await safeRemoveDir(AUTH_DIR);
   }
   connectionStatus = 'DISCONNECTED';
   currentQrCode = null;
@@ -105,7 +130,7 @@ export const initWhatsApp = async () => {
       } else {
         console.log('[WhatsApp] Logged out. Waiting for new login.');
         if (fs.existsSync(AUTH_DIR)) {
-          fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+          await safeRemoveDir(AUTH_DIR);
         }
         initWhatsApp();
       }
